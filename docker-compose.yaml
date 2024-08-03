@@ -1,0 +1,75 @@
+version: '3.7'
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    networks:
+      - airflow
+
+  webserver:
+    image: apache/airflow:2.5.1
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: "m9XIibRFv6tiLYnOhah6ksc8kKMN6ZVRYFvbwttbSw8="
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./auth:/opt/airflow/src/auth
+      - ./database:/opt/airflow/src/database
+    ports:
+      - "8080:8080"
+    networks:
+      - airflow
+    command: webserver
+
+  scheduler:
+    image: apache/airflow:2.5.1
+    depends_on:
+      - webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: "m9XIibRFv6tiLYnOhah6ksc8kKMN6ZVRYFvbwttbSw8="
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./auth:/opt/airflow/src/auth
+      - ./database:/opt/airflow/src/database
+    networks:
+      - airflow
+    command: scheduler
+
+  worker:
+    image: apache/airflow:2.5.1
+    depends_on:
+      - scheduler
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: "m9XIibRFv6tiLYnOhah6ksc8kKMN6ZVRYFvbwttbSw8="
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./auth:/opt/airflow/src/auth
+      - ./database:/opt/airflow/src/database
+    networks:
+      - airflow
+    command: worker
+
+volumes:
+  postgres-db-volume:
+
+networks:
+  airflow:
